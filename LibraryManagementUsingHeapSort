@@ -1,0 +1,240 @@
+package LibraryManagementSystem;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.ArrayList;
+import java.util.Stack;
+
+public class LibraryManagementSystem extends JFrame {
+
+    private ArrayList<String> books;
+    private Stack<String> actionStack;
+    private JTextArea displayArea;
+    private JTextField bookTitleField, indexField;
+
+    public LibraryManagementSystem() {
+        books = new ArrayList<>();
+        actionStack = new Stack<>();
+        setTitle("Library Management System");
+        setSize(800, 500);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        JPanel topPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.anchor = GridBagConstraints.WEST;
+
+        // Book title input
+        JLabel bookLabel = new JLabel("Book Title:");
+        bookTitleField = new JTextField(20);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        topPanel.add(bookLabel, gbc);
+        gbc.gridx = 1;
+        topPanel.add(bookTitleField, gbc);
+
+        // Index input
+        JLabel indexLabel = new JLabel("Index:");
+        indexField = new JTextField(5);
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        topPanel.add(indexLabel, gbc);
+        gbc.gridx = 1;
+        topPanel.add(indexField, gbc);
+
+        // Button panel
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 4, 10, 10));
+
+        // Add Book Button
+        JButton addBookButton = new JButton("Add Book");
+        styleButton(addBookButton);
+        addBookButton.addActionListener(e -> addBook());
+        buttonPanel.add(addBookButton);
+
+        // Remove Book by Title Button
+        JButton removeByTitleButton = new JButton("Remove by Title");
+        styleButton(removeByTitleButton);
+        removeByTitleButton.addActionListener(e -> removeBookByTitle());
+        buttonPanel.add(removeByTitleButton);
+
+        // Remove Book by Index Button
+        JButton removeByIndexButton = new JButton("Remove by Index");
+        styleButton(removeByIndexButton);
+        removeByIndexButton.addActionListener(e -> removeBookByIndex());
+        buttonPanel.add(removeByIndexButton);
+
+        
+        // Total Books Button
+        JButton totalBooksButton = new JButton("Total Books");
+        styleButton(totalBooksButton);
+        totalBooksButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "Total books: " + books.size()));
+        buttonPanel.add(totalBooksButton);
+
+        // Undo Button
+        JButton undoButton = new JButton("Undo");
+        styleButton(undoButton);
+        undoButton.addActionListener(e -> undoAction());
+        buttonPanel.add(undoButton);
+
+        // Exit Button
+        JButton exitButton = new JButton("Exit");
+        styleButton(exitButton);
+        exitButton.addActionListener(e -> System.exit(0));
+        buttonPanel.add(exitButton);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 2;
+        topPanel.add(buttonPanel, gbc);
+
+        // Text area to display books
+        displayArea = new JTextArea();
+        displayArea.setFont(new Font("Monospaced", Font.PLAIN, 14));
+        displayArea.setEditable(false);
+        displayArea.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+        JScrollPane scrollPane = new JScrollPane(displayArea);
+
+        add(topPanel, BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.CENTER);
+
+        setVisible(true);
+    }
+
+    private void styleButton(JButton button) {
+        button.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        button.setBackground(new Color(70, 130, 180));
+        button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setOpaque(true);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
+
+    // Add Book function
+    private void addBook() {
+        String title = bookTitleField.getText().trim();
+        if (!title.isEmpty()) {
+            books.add(title);
+            actionStack.push("ADD:" + title);
+            JOptionPane.showMessageDialog(this, "Book '" + title + "' has been added.");
+            updateDisplay();
+        } else {
+            JOptionPane.showMessageDialog(this, "Please enter a book title.");
+        }
+    }
+
+    // Remove Book by Title function
+    private void removeBookByTitle() {
+        String title = bookTitleField.getText().trim();
+        if (!title.isEmpty() && books.contains(title)) {
+            books.remove(title);
+            actionStack.push("REMOVE:" + title);
+            JOptionPane.showMessageDialog(this, "Book '" + title + "' has been removed.");
+            updateDisplay();
+        } else {
+            JOptionPane.showMessageDialog(this, "Book not found or title is empty.");
+        }
+    }
+
+    // Remove Book by Index function
+    private void removeBookByIndex() {
+        try {
+            int index = Integer.parseInt(indexField.getText().trim()) - 1;
+            if (index >= 0 && index < books.size()) {
+                String removedBook = books.remove(index);
+                actionStack.push("REMOVE:" + removedBook);
+                JOptionPane.showMessageDialog(this, "Book '" + removedBook + "' has been removed.");
+                updateDisplay();
+            } else {
+                JOptionPane.showMessageDialog(this, "Invalid index.");
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Please enter a valid index.");
+        }
+    }
+
+    // Undo last action function
+    private void undoAction() {
+        if (!actionStack.isEmpty()) {
+            String lastAction = actionStack.pop();
+            String[] actionParts = lastAction.split(":");
+
+            if (actionParts[0].equals("ADD")) {
+                books.remove(actionParts[1]);
+                JOptionPane.showMessageDialog(this, "Undo: Book '" + actionParts[1] + "' removed.");
+            } else if (actionParts[0].equals("REMOVE")) {
+                books.add(actionParts[1]);
+                JOptionPane.showMessageDialog(this, "Undo: Book '" + actionParts[1] + "' added back.");
+            }
+            updateDisplay();
+        } else {
+            JOptionPane.showMessageDialog(this, "No actions to undo.");
+        }
+    }
+
+    // Heapify a subtree rooted with node i, n is size of heap
+    private void heapify(ArrayList<String> arr, int n, int i) {
+        int largest = i;  // Initialize largest as root
+        int left = 2 * i + 1;  // left = 2*i + 1
+        int right = 2 * i + 2;  // right = 2*i + 2
+
+        // If left child is larger than root
+        if (left < n && arr.get(left).compareTo(arr.get(largest)) > 0)
+            largest = left;
+
+        // If right child is larger than largest so far
+        if (right < n && arr.get(right).compareTo(arr.get(largest)) > 0)
+            largest = right;
+
+        // If largest is not root
+        if (largest != i) {
+            // Swap
+            String swap = arr.get(i);
+            arr.set(i, arr.get(largest));
+            arr.set(largest, swap);
+
+            // Recursively heapify the affected sub-tree
+            heapify(arr, n, largest);
+        }
+    }
+
+    // Function to sort array using heap sort
+    private void heapSort(ArrayList<String> arr) {
+        int n = arr.size();
+
+        // Build heap (rearrange array)
+        for (int i = n / 2 - 1; i >= 0; i--)
+            heapify(arr, n, i);
+
+        // One by one extract elements
+        for (int i = n - 1; i > 0; i--) {
+            // Move current root to end
+            String temp = arr.get(0);
+            arr.set(0, arr.get(i));
+            arr.set(i, temp);
+
+            // call max heapify on the reduced heap
+            heapify(arr, i, 0);
+        }
+    }
+
+    // Update display area with current books (sorted using heap sort)
+    private void updateDisplay() {
+        // Sort the books using heap sort
+        heapSort(books);
+
+        // Display the sorted books
+        StringBuilder displayText = new StringBuilder();
+        displayText.append("Library contains ").append(books.size()).append(" books (sorted):\n");
+        for (int i = 0; i < books.size(); i++) {
+            displayText.append(i + 1).append(". ").append(books.get(i)).append("\n");
+        }
+        displayArea.setText(displayText.toString());
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new LibraryManagementSystem());
+    }
+}
